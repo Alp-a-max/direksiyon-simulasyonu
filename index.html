@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pi ile Direksiyon Çevirme</title>
+    <title>Gelişmiş Direksiyon Simülasyonu</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* GENEL TASARIM - NEO-HUD STİLİ */
@@ -201,11 +201,11 @@
         </div>
 
         <div class="control-area">
-            <input type="range" id="steerSlider" min="-225" max="225" value="0" step="1">
+            <input type="range" id="steerSlider" min="-450" max="450" value="0" step="1">
             <div class="slider-labels">
-                <span>SOL - $225^\circ$</span>
+                <span>SOL - 450°</span>
                 <span>MERKEZ</span>
-                <span>SAĞ + $225^\circ$</span>
+                <span>SAĞ + 450°</span>
             </div>
         </div>
     </div>
@@ -222,19 +222,22 @@
         const statSegment = document.getElementById('valStatSegment');
         const leftInd = document.getElementById('leftInd');
         const rightInd = document.getElementById('rightInd');
+        
+        // Deadzone (Ölü Bölge) için bir sabit belirleyelim (Hassasiyeti artırmak için 15 derece yaptık)
+        const DEADZONE = 15; 
 
         // Viraj şiddetine göre arka plan renkleri (RGB 0-255)
         const statusColors = {
-            "Düz gidiyor": 'rgba(0, 255, 196, 1)', // Cyan
-            "Hafif viraj": 'rgba(255, 255, 0, 1)',  // Sarı
-            "Orta viraj": 'rgba(255, 165, 0, 1)',   // Turuncu
-            "Keskin viraj": 'rgba(255, 99, 71, 1)', // Kırmızımsı Turuncu
-            "Çok keskin viraj": 'rgba(255, 69, 0, 1)',// Kırmızı
-            "U dönüşü yapıyor": 'rgba(255, 0, 0, 1)'  // Parlak Kırmızı
+            "Düz gidiyor": 'rgba(0, 255, 196, 1)', 
+            "Hafif viraj": 'rgba(255, 255, 0, 1)',  
+            "Orta viraj": 'rgba(255, 165, 0, 1)',    
+            "Keskin viraj": 'rgba(255, 99, 71, 1)', 
+            "Çok keskin viraj": 'rgba(255, 69, 0, 1)',
+            "U dönüşü yapıyor": 'rgba(255, 0, 0, 1)'  
         };
         
         function updateSimulation() {
-            // 1. Slider'dan anlık değeri al (-225 ile +225 arası)
+            // 1. Slider'dan anlık değeri al (-450 ile +450 arası)
             let currentAngle = parseInt(slider.value);
 
             // 2. Direksiyon görselini döndür (CSS transform)
@@ -243,9 +246,9 @@
             // 3. Matematiksel Hesaplamalar
             let absDeg = Math.abs(currentAngle); 
             
-            // Deadzone (Ölü bölge) kontrolü
+            // Deadzone (Ölü bölge) kontrolü: Merkezde daha az hassas
             let effectiveAngle = currentAngle;
-            if (absDeg < 10) {
+            if (absDeg < DEADZONE) { 
                 absDeg = 0;
                 effectiveAngle = 0;
             }
@@ -258,22 +261,22 @@
             leftInd.classList.remove('active-left');
             rightInd.classList.remove('active-right');
 
-            if (effectiveAngle < -10) {
+            if (effectiveAngle < -DEADZONE) {
                 direction = "SOL";
                 leftInd.classList.add('active-left');
-            } else if (effectiveAngle > 10) {
+            } else if (effectiveAngle > DEADZONE) {
                 direction = "SAĞ";
                 rightInd.classList.add('active-right');
             }
 
-            // 5. Viraj Durumu Mantığı (Kademeli)
+            // 5. Viraj Durumu Mantığı (Kademeli) - 450 DERECEYE UYARLANDI
             let turnType;
             if (absDeg == 0) turnType = "Düz gidiyor";
-            else if (absDeg < 45) turnType = "Hafif viraj";
-            else if (absDeg < 90) turnType = "Orta viraj";
-            else if (absDeg < 160) turnType = "Keskin viraj";
-            else if (absDeg < 200) turnType = "Çok keskin viraj";
-            else turnType = "U dönüşü yapıyor";
+            else if (absDeg < 100) turnType = "Hafif viraj";    // 100 dereceden sonra başlar (Daha az hassas)
+            else if (absDeg < 200) turnType = "Orta viraj";     // 200 dereceden sonra başlar
+            else if (absDeg < 300) turnType = "Keskin viraj";   // 300 dereceden sonra başlar
+            else if (absDeg < 400) turnType = "Çok keskin viraj";// 400 dereceden sonra başlar
+            else turnType = "U dönüşü yapıyor";                 // 400 dereceden sonrası (Maksimum 450)
 
             // 6. Sonuçları Ekrana Yazdır
             valDegTxt.innerText = currentAngle + "°";
@@ -293,5 +296,4 @@
         updateSimulation();
     </script>
 </body>
-
 </html>
