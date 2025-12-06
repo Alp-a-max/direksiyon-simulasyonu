@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gelişmiş Direksiyon Simülasyonu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* GENEL TASARIM - NEO-HUD STİLİ */
+        body {
+            font-family: 'Orbitron', sans-serif; /* Teknoloji odaklı font */
+            background-color: #0d1a29; /* Çok koyu mavi/siyah */
+            color: #00ffc4; /* Neon cyan rengi */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 2em;
+            text-shadow: 0 0 10px #00ffc4;
+            margin-bottom: 40px;
+        }
+
+        .console-container {
+            background-color: rgba(0, 0, 0, 0.4);
+            border: 1px solid #00ffc4;
+            box-shadow: 0 0 20px rgba(0, 255, 196, 0.3), inset 0 0 10px rgba(0, 255, 196, 0.2);
+            padding: 40px 60px;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+            width: 90%;
+            max-width: 800px;
+        }
+
+        /* --- VERİ PANOSU (TOP) --- */
+        .data-panel {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .data-segment {
+            flex: 1;
+            text-align: center;
+            padding: 15px 10px;
+            border: 1px solid #00ffc4;
+            border-radius: 8px;
+            background-color: rgba(0, 255, 196, 0.05);
+        }
+
+        .data-label {
+            font-size: 0.7em;
+            color: #64ffda;
+            opacity: 0.8;
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+        }
+
+        .data-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            text-shadow: 0 0 5px #00ffc4;
+        }
+        
+        /* Viraj Durumu Alanı */
+        #valStatSegment {
+            grid-column: span 2;
+            padding: 15px 10px;
+            font-size: 1.2em;
+            background-color: #00ffc4;
+            color: #0d1a29;
+            border: none;
+            text-shadow: none;
+            transition: background-color 0.3s;
+        }
+        
+        /* --- DİREKSİYON & GÖSTERGE ALANI --- */
+        .wheel-area {
+            display: flex;
+            align-items: center;
+            gap: 50px;
+        }
+
+        /* Direksiyon Görseli */
+        .wheel-display {
+            width: 250px;
+            height: 250px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        #steeringWheelImg {
+            width: 100%;
+            height: 100%;
+            filter: invert(1) drop-shadow(0 0 15px #00ffc4);
+            transition: transform 0.1s linear; /* Yumuşak dönüş */
+        }
+        
+        /* --- SLIDER KONTROL --- */
+        .control-area {
+            width: 100%;
+            max-width: 500px;
+            margin-top: 30px;
+        }
+
+        #steerSlider {
+            width: 100%;
+            /* Tarayıcıya özel slider stili */
+            -webkit-appearance: none;
+            background: #0d1a29;
+            height: 8px;
+            border-radius: 4px;
+            border: 1px solid #00ffc4;
+            box-shadow: 0 0 8px rgba(0, 255, 196, 0.5);
+        }
+
+        #steerSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e74c3c; /* Başparmak rengi */
+            cursor: pointer;
+            box-shadow: 0 0 10px #e74c3c;
+        }
+        
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7em;
+            color: #64ffda;
+            margin-top: 5px;
+        }
+        
+        /* Yön Göstergeleri (SOL/SAĞ) */
+        .direction-indicator {
+            width: 10px;
+            height: 30px;
+            margin: 0 10px;
+            background-color: transparent;
+            transition: background-color 0.1s;
+        }
+
+        #leftInd { transform: rotate(90deg); }
+        #rightInd { transform: rotate(-90deg); }
+
+        .active-left { background-color: #f39c12 !important; box-shadow: 0 0 10px #f39c12; }
+        .active-right { background-color: #f39c12 !important; box-shadow: 0 0 10px #f39c12; }
+
+
+    </style>
+</head>
+<body>
+
+    <h1>Direksiyon Konsolu (Pi Simülasyonu)</h1>
+
+    <div class="console-container">
+        
+        <div class="data-panel">
+            <div class="data-segment">
+                <div class="data-label">AÇI</div>
+                <div class="data-value" id="valDeg">0°</div>
+            </div>
+            <div class="data-segment">
+                <div class="data-label">RADYAN KATSAYISI</div>
+                <div class="data-value"><span id="valPi">0.000</span> π</div>
+            </div>
+            <div class="data-segment">
+                <div class="data-label">YÖN</div>
+                <div class="data-value" id="valDir">MERKEZ</div>
+            </div>
+        </div>
+
+        <div class="wheel-area">
+            <div class="direction-indicator" id="leftInd"></div>
+
+            <div class="wheel-display">
+                <img id="steeringWheelImg" src="https://cdn-icons-png.flaticon.com/512/1566/1566362.png" alt="Direksiyon">
+            </div>
+            
+            <div class="direction-indicator" id="rightInd"></div>
+        </div>
+
+        <div class="data-panel" style="width: 100%;">
+            <div class="data-segment" id="valStatSegment">
+                <span id="valStat">Düz gidiyor</span>
+            </div>
+        </div>
+
+        <div class="control-area">
+            <input type="range" id="steerSlider" min="-225" max="225" value="0" step="1">
+            <div class="slider-labels">
+                <span>SOL - $225^\circ$</span>
+                <span>MERKEZ</span>
+                <span>SAĞ + $225^\circ$</span>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // HTML elemanlarını seçelim
+        const slider = document.getElementById('steerSlider');
+        const wheelImg = document.getElementById('steeringWheelImg');
+        const valDegTxt = document.getElementById('valDeg');
+        const valPiTxt = document.getElementById('valPi');
+        const valDirTxt = document.getElementById('valDir');
+        const valStatTxt = document.getElementById('valStat');
+        const statSegment = document.getElementById('valStatSegment');
+        const leftInd = document.getElementById('leftInd');
+        const rightInd = document.getElementById('rightInd');
+
+        // Viraj şiddetine göre arka plan renkleri (RGB 0-255)
+        const statusColors = {
+            "Düz gidiyor": 'rgba(0, 255, 196, 1)', // Cyan
+            "Hafif viraj": 'rgba(255, 255, 0, 1)',  // Sarı
+            "Orta viraj": 'rgba(255, 165, 0, 1)',   // Turuncu
+            "Keskin viraj": 'rgba(255, 99, 71, 1)', // Kırmızımsı Turuncu
+            "Çok keskin viraj": 'rgba(255, 69, 0, 1)',// Kırmızı
+            "U dönüşü yapıyor": 'rgba(255, 0, 0, 1)'  // Parlak Kırmızı
+        };
+        
+        function updateSimulation() {
+            // 1. Slider'dan anlık değeri al (-225 ile +225 arası)
+            let currentAngle = parseInt(slider.value);
+
+            // 2. Direksiyon görselini döndür (CSS transform)
+            wheelImg.style.transform = `rotate(${currentAngle}deg)`;
+            
+            // 3. Matematiksel Hesaplamalar
+            let absDeg = Math.abs(currentAngle); 
+            
+            // Deadzone (Ölü bölge) kontrolü
+            let effectiveAngle = currentAngle;
+            if (absDeg < 10) {
+                absDeg = 0;
+                effectiveAngle = 0;
+            }
+
+            let anglePi = absDeg / 180.0; // Pi hesabı
+
+            // 4. Yön Belirleme ve Yön Işıkları
+            let direction = "MERKEZ";
+            
+            leftInd.classList.remove('active-left');
+            rightInd.classList.remove('active-right');
+
+            if (effectiveAngle < -10) {
+                direction = "SOL";
+                leftInd.classList.add('active-left');
+            } else if (effectiveAngle > 10) {
+                direction = "SAĞ";
+                rightInd.classList.add('active-right');
+            }
+
+            // 5. Viraj Durumu Mantığı (Kademeli)
+            let turnType;
+            if (absDeg == 0) turnType = "Düz gidiyor";
+            else if (absDeg < 45) turnType = "Hafif viraj";
+            else if (absDeg < 90) turnType = "Orta viraj";
+            else if (absDeg < 160) turnType = "Keskin viraj";
+            else if (absDeg < 200) turnType = "Çok keskin viraj";
+            else turnType = "U dönüşü yapıyor";
+
+            // 6. Sonuçları Ekrana Yazdır
+            valDegTxt.innerText = currentAngle + "°";
+            valPiTxt.innerText = anglePi.toFixed(3);
+            valDirTxt.innerText = direction;
+            valStatTxt.innerText = turnType.toUpperCase();
+            
+            // 7. Duruma göre rengi dinamik olarak değiştir
+            statSegment.style.backgroundColor = statusColors[turnType];
+            statSegment.style.boxShadow = `0 0 15px ${statusColors[turnType].replace('1)', '0.8)')}`;
+        }
+
+        // Slider hareket ettirildiğinde fonksiyonu çalıştır
+        slider.addEventListener('input', updateSimulation);
+
+        // Sayfa ilk açıldığında bir kez çalıştır
+        updateSimulation();
+    </script>
+</body>
+</html>
